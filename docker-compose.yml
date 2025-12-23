@@ -2,8 +2,8 @@ version: '3.8'
 services:
   mcp-tools:
     build:
-      context: ../
-      dockerfile: mcp-tools/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     image: mcp-tools:latest
     ports:
       - "3001:3000"
