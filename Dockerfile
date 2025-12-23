@@ -8,9 +8,12 @@ RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /
 RUN apk add --no-cache libc6-compat && npm install -g pnpm@9.4.0
 
 # copy packages and one project
+# 注意：构建此镜像需要将 Monorepo 根目录下的 pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc 复制到当前目录
 COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# 注意：构建此镜像需要将 Monorepo 根目录下的 packages 目录复制到当前目录
 COPY ./packages ./packages
-COPY ./mcp-tools/package.json ./mcp-tools/package.json
+# 修改：适配当前目录结构
+COPY package.json ./mcp-tools/package.json
 
 RUN [ -f pnpm-lock.yaml ] || (echo "Lockfile not found." && exit 1)
 
@@ -31,7 +34,8 @@ ARG proxy
 COPY package.json pnpm-workspace.yaml .npmrc tsconfig.json ./
 COPY --from=maindeps /app/node_modules ./node_modules
 COPY --from=maindeps /app/packages ./packages
-COPY ./mcp-tools ./mcp-tools
+# 修改：适配当前目录结构
+COPY . ./mcp-tools
 COPY --from=maindeps /app/mcp-tools/node_modules ./mcp-tools/node_modules
 
 RUN [ -z "$proxy" ] || sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
