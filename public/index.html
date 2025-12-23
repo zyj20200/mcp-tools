@@ -151,6 +151,25 @@
             font-size: 13px;
             line-height: 1.5;
         }
+
+        pre.wrap-text {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: normal;
+            margin-left: auto;
+            cursor: pointer;
+        }
+        
+        .toggle-wrap input {
+            margin-right: 6px;
+        }
         
         .param-field { margin-bottom: 20px; }
         .param-field label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #374151; }
@@ -211,7 +230,12 @@
             <button id="runBtn" style="margin-top: 24px; width: 100%;">运行工具</button>
         </div>
         <div class="result-panel">
-            <h3 class="panel-title">运行结果</h3>
+            <h3 class="panel-title">
+                运行结果
+                <label class="toggle-wrap">
+                    <input type="checkbox" id="wrapToggle"> 自动换行
+                </label>
+            </h3>
             <pre id="output">等待运行...</pre>
         </div>
     </div>
@@ -231,6 +255,15 @@
     const paramsFormEl = document.getElementById('paramsForm');
     const runBtn = document.getElementById('runBtn');
     const outputEl = document.getElementById('output');
+    const wrapToggle = document.getElementById('wrapToggle');
+
+    wrapToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            outputEl.classList.add('wrap-text');
+        } else {
+            outputEl.classList.remove('wrap-text');
+        }
+    });
 
     connectBtn.addEventListener('click', async () => {
         const url = serverUrlInput.value;
