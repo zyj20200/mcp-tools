@@ -1,4 +1,4 @@
-# MCP 工具测试台 (MCP Tools Workbench)
+﻿# MCP 工具测试台 (MCP Tools Workbench)
 
 这是一个独立的 MCP (Model Context Protocol) 工具测试台，旨在为开发者提供一个便捷的环境来连接、调试和测试 MCP Server，支持 SSE (Server-Sent Events) 协议的 MCP Server 连接。
 
@@ -14,7 +14,7 @@
     - 支持参数输入和必填项校验。
     - **👀 结果查看**: 实时展示运行结果，支持**自动换行**切换，方便查看长文本。
 
-## � 界面预览
+## 🚀 界面预览
 
 ![工具列表](img/init.png)
 ![工具详情与运行](img/detail.png)
