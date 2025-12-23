@@ -1,8 +1,6 @@
 # MCP 工具测试台 (MCP Tools Workbench)
 
-这是一个独立的 MCP (Model Context Protocol) 工具测试台，旨在为开发者提供一个便捷的环境来连接、调试和测试 MCP Server。
-
-它从 FastGPT 项目中抽离，作为一个独立的应用运行，支持 SSE (Server-Sent Events) 协议的 MCP Server 连接。
+这是一个独立的 MCP (Model Context Protocol) 工具测试台，旨在为开发者提供一个便捷的环境来连接、调试和测试 MCP Server，支持 SSE (Server-Sent Events) 协议的 MCP Server 连接。
 
 ## ✨ 核心功能
 
@@ -16,24 +14,7 @@
 
 ## 🚀 快速开始
 
-### 本地开发
-
-由于本项目依赖于 FastGPT Monorepo 中的其他包（`@fastgpt/*`），请确保你在 Monorepo 根目录下进行操作。
-
-1.  **安装依赖**
-    在根目录下运行：
-    ```bash
-    pnpm install
-    ```
-
-2.  **启动开发服务器**
-    进入 `mcp-tools` 目录并启动：
-    ```bash
-    cd mcp-tools
-    pnpm dev
-    ```
-
-3.  **访问应用**
+ **访问应用**
     打开浏览器访问：[http://localhost:3001](http://localhost:3001)
 
 ### 🐳 Docker 部署
@@ -66,7 +47,3 @@
     - 点击“运行”按钮。
     - 右侧“运行结果”区域将显示工具的执行输出。
 
-## ⚠️ 注意事项
-
-- 本项目作为 FastGPT Monorepo 的一部分，依赖于 `packages/` 目录下的共享代码。
-- 在进行 Docker 构建时，请确保构建上下文（Context）包含整个 Monorepo 根目录。

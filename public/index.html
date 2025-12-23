@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Tools Workbench</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; background-color: #f5f5f5; }
+        #sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        #main { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+        .header { padding: 20px; border-bottom: 1px solid #eee; background: white; }
+        .tool-list { flex: 1; overflow-y: auto; }
+        .tool-item { padding: 10px 20px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        .tool-item:hover { background-color: #f0f7ff; }
+        .tool-item.active { background-color: #e6f7ff; border-right: 3px solid #1890ff; }
+        .tool-name { font-weight: bold; margin-bottom: 4px; }
+        .tool-desc { font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .config-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; flex: 1; }
+        .form-group label { font-size: 12px; margin-bottom: 4px; font-weight: bold; }
+        .form-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #40a9ff; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .workspace { display: flex; flex: 1; gap: 20px; overflow: hidden; }
+        .params-panel { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto; }
+        .result-panel { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        
+        pre { background: #f8f8f8; padding: 10px; border-radius: 4px; overflow: auto; flex: 1; margin: 0; }
+        
+        .param-field { margin-bottom: 15px; }
+        .param-field label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .param-field input, .param-field textarea, .param-field select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .param-desc { font-size: 12px; color: #888; margin-top: 4px; }
+        
+        .hidden { display: none; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="header">
+        <h3>工具列表</h3>
+        <div style="font-size: 12px; color: #888;">连接 Server 后显示</div>
+    </div>
+    <div id="toolList" class="tool-list">
+        <!-- Tools will be injected here -->
+    </div>
+</div>
+
+<div id="main">
+    <div class="config-panel">
+        <div class="form-group" style="flex: 3;">
+            <label>MCP Server SSE URL</label>
+            <input type="text" id="serverUrl" placeholder="http://localhost:8000/sse" value="http://localhost:8000/sse">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Auth Header (Optional)</label>
+            <input type="text" id="authHeader" placeholder="Bearer token">
+        </div>
+        <button id="connectBtn">连接 / 解析</button>
+    </div>
+
+    <div id="workspace" class="workspace hidden">
+        <div class="params-panel">
+            <h3 id="selectedToolName">请选择工具</h3>
+            <p id="selectedToolDesc" style="color: #666; margin-bottom: 20px;"></p>
+            <div id="paramsForm"></div>
+            <button id="runBtn" style="margin-top: 20px;">运行工具</button>
+        </div>
+        <div class="result-panel">
+            <h3>运行结果</h3>
+            <pre id="output">等待运行...</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTools = [];
+    let selectedTool = null;
+
+    const connectBtn = document.getElementById('connectBtn');
+    const serverUrlInput = document.getElementById('serverUrl');
+    const authHeaderInput = document.getElementById('authHeader');
+    const toolListEl = document.getElementById('toolList');
+    const workspaceEl = document.getElementById('workspace');
+    const selectedToolNameEl = document.getElementById('selectedToolName');
+    const selectedToolDescEl = document.getElementById('selectedToolDesc');
+    const paramsFormEl = document.getElementById('paramsForm');
+    const runBtn = document.getElementById('runBtn');
+    const outputEl = document.getElementById('output');
+
+    connectBtn.addEventListener('click', async () => {
+        const url = serverUrlInput.value;
+        const auth = authHeaderInput.value;
+        const headers = auth ? { "Authorization": auth } : {};
+
+        connectBtn.disabled = true;
+        connectBtn.textContent = "连接中...";
+
+        try {
+            // Connect
+            const connectRes = await fetch('/api/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, headers })
+            });
+            
+            if (!connectRes.ok) {
+                const err = await connectRes.json();
+                throw new Error(err.error || 'Connection failed');
+            }
+
+            // List Tools
+            const toolsRes = await fetch('/api/tools');
+            if (!toolsRes.ok) {
+                const err = await toolsRes.json();
+                throw new Error(err.error || 'Failed to list tools');
+            }
+
+            currentTools = await toolsRes.json();
+            renderToolList();
+            workspaceEl.classList.remove('hidden');
+            
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            connectBtn.disabled = false;
+            connectBtn.textContent = "连接 / 解析";
+        }
+    });
+
+    function renderToolList() {
+        toolListEl.innerHTML = '';
+        currentTools.forEach(tool => {
+            const div = document.createElement('div');
+            div.className = 'tool-item';
+            div.innerHTML = `
+                <div class="tool-name">${tool.name}</div>
+                <div class="tool-desc">${tool.description || 'No description'}</div>
+            `;
+            div.onclick = () => selectTool(tool, div);
+            toolListEl.appendChild(div);
+        });
+    }
+
+    function selectTool(tool, element) {
+        selectedTool = tool;
+        
+        // Update UI
+        document.querySelectorAll('.tool-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        
+        selectedToolNameEl.textContent = tool.name;
+        selectedToolDescEl.textContent = tool.description || '';
+        
+        // Generate Form
+        paramsFormEl.innerHTML = '';
+        const schema = tool.inputSchema;
+        if (schema && schema.properties) {
+            Object.keys(schema.properties).forEach(key => {
+                const prop = schema.properties[key];
+                const isRequired = schema.required && schema.required.includes(key);
+                
+                const field = document.createElement('div');
+                field.className = 'param-field';
+                
+                const label = document.createElement('label');
+                label.textContent = key + (isRequired ? ' *' : '');
+                field.appendChild(label);
+                
+                let input;
+                if (prop.type === 'boolean') {
+                    input = document.createElement('select');
+                    input.innerHTML = '<option value="true">True</option><option value="false">False</option>';
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    if (prop.type === 'number' || prop.type === 'integer') input.type = 'number';
+                }
+                input.name = key;
+                input.placeholder = prop.description || '';
+                field.appendChild(input);
+                
+                if (prop.description) {
+                    const desc = document.createElement('div');
+                    desc.className = 'param-desc';
+                    desc.textContent = prop.description;
+                    field.appendChild(desc);
+                }
+                
+                paramsFormEl.appendChild(field);
+            });
+        } else {
+            paramsFormEl.innerHTML = '<div style="color: #888;">此工具无需参数</div>';
+        }
+        
+        outputEl.textContent = '等待运行...';
+    }
+
+    runBtn.addEventListener('click', async () => {
+        if (!selectedTool) return;
+        
+        const args = {};
+        const inputs = paramsFormEl.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.value) {
+                // Simple type conversion
+                if (input.type === 'number') {
+                    args[input.name] = Number(input.value);
+                } else if (input.tagName === 'SELECT' && (input.value === 'true' || input.value === 'false')) {
+                    args[input.name] = input.value === 'true';
+                } else {
+                    args[input.name] = input.value;
+                }
+            }
+        });
+
+        runBtn.disabled = true;
+        runBtn.textContent = "运行中...";
+        outputEl.textContent = "运行中...";
+
+        try {
+            const res = await fetch('/api/tools/call', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: selectedTool.name,
+                    args: args
+                })
+            });
+            
+            const result = await res.json();
+            outputEl.textContent = JSON.stringify(result, null, 2);
+        } catch (err) {
+            outputEl.textContent = 'Error: ' + err.message;
+        } finally {
+            runBtn.disabled = false;
+            runBtn.textContent = "运行工具";
+        }
+    });
+</script>
+
+</body>
+</html>

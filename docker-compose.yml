@@ -1,11 +1,11 @@
-version: '3.8'
+version: '3'
 services:
   mcp-tools:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: mcp-tools:latest
+    build: .
     ports:
-      - "3001:3000"
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       - NODE_ENV=production
