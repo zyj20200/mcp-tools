@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectToMcpServer = connectToMcpServer;
+exports.disconnectMcpServer = disconnectMcpServer;
 exports.listTools = listTools;
 exports.callTool = callTool;
 const index_js_1 = require("@modelcontextprotocol/sdk/client/index.js");
@@ -46,6 +47,23 @@ async function connectToMcpServer(url, headers = {}) {
     await currentClient.connect(currentTransport);
     console.log("Connected to MCP Server");
     return { status: "connected" };
+}
+async function disconnectMcpServer() {
+    if (currentClient) {
+        try {
+            await currentClient.close();
+            console.log("Disconnected from MCP Server");
+        }
+        catch (e) {
+            console.error("Error closing client (ignoring):", e);
+            // Ignore error during disconnect, as we want to clear the state anyway
+        }
+        finally {
+            currentClient = null;
+            currentTransport = null;
+        }
+    }
+    return { status: "disconnected" };
 }
 async function listTools() {
     if (!currentClient) {

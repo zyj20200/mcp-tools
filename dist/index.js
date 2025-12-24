@@ -29,6 +29,17 @@ app.post("/api/connect", async (req, res) => {
         res.status(500).json({ error: error.message || "Failed to connect" });
     }
 });
+// Disconnect from MCP Server
+app.post("/api/disconnect", async (req, res) => {
+    try {
+        await (0, mcpClient_js_1.disconnectMcpServer)();
+        res.json({ success: true, message: "Disconnected successfully" });
+    }
+    catch (error) {
+        console.error("Disconnect error:", error);
+        res.status(500).json({ error: error.message || "Failed to disconnect" });
+    }
+});
 // List Tools
 app.get("/api/tools", async (req, res) => {
     try {
