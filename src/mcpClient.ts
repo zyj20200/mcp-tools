@@ -56,8 +56,8 @@ export async function disconnectMcpServer() {
       await currentClient.close();
       console.log("Disconnected from MCP Server");
     } catch (e) {
-      console.error("Error closing client:", e);
-      throw e;
+      console.error("Error closing client (ignoring):", e);
+      // Ignore error during disconnect, as we want to clear the state anyway
     } finally {
       currentClient = null;
       currentTransport = null;
