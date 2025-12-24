@@ -153,6 +153,13 @@
         button:hover { background: var(--primary-hover); }
         button:disabled { background: #9ca3af; cursor: not-allowed; }
 
+        button.secondary {
+            background: #ef4444;
+        }
+        button.secondary:hover {
+            background: #dc2626;
+        }
+
         /* Workspace */
         .workspace { display: flex; flex: 1; gap: 24px; overflow: hidden; }
         
@@ -266,6 +273,7 @@
             <input type="text" id="authHeader" placeholder="Bearer token">
         </div>
         <button id="connectBtn">连接 / 解析</button>
+        <button id="disconnectBtn" class="secondary hidden">断开连接</button>
     </div>
 
     <div id="workspace" class="workspace hidden">
@@ -292,6 +300,7 @@
     let selectedTool = null;
 
     const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
     const serverUrlInput = document.getElementById('serverUrl');
     const authHeaderInput = document.getElementById('authHeader');
     const toolListEl = document.getElementById('toolList');
@@ -348,11 +357,52 @@
             renderToolList();
             workspaceEl.classList.remove('hidden');
             
+            // Update UI state
+            connectBtn.classList.add('hidden');
+            disconnectBtn.classList.remove('hidden');
+            serverUrlInput.disabled = true;
+            authHeaderInput.disabled = true;
+            
         } catch (err) {
             alert('Error: ' + err.message);
         } finally {
             connectBtn.disabled = false;
             connectBtn.textContent = "连接 / 解析";
+        }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+        if (!confirm('确定要断开连接吗？')) return;
+
+        disconnectBtn.disabled = true;
+        disconnectBtn.textContent = "断开中...";
+
+        try {
+            const res = await fetch('/api/disconnect', { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to disconnect');
+
+            // Reset UI
+            currentTools = [];
+            renderToolList();
+            workspaceEl.classList.add('hidden');
+            
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
+            serverUrlInput.disabled = false;
+            authHeaderInput.disabled = false;
+            
+            // Clear selection
+            selectedTool = null;
+            paramsFormEl.innerHTML = '';
+            outputEl.textContent = '等待运行...';
+            selectedToolNameEl.textContent = '请选择工具';
+            selectedToolDescEl.textContent = '';
+
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            disconnectBtn.disabled = false;
+            disconnectBtn.textContent = "断开连接";
         }
     });
 

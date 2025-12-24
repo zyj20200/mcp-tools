@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import path from "path";
-import { connectToMcpServer, listTools, callTool } from "./mcpClient.js";
+import { connectToMcpServer, disconnectMcpServer, listTools, callTool } from "./mcpClient.js";
 
 const app = express();
 const PORT = 3001;
@@ -25,6 +25,17 @@ app.post("/api/connect", async (req, res) => {
   } catch (error: any) {
     console.error("Connection error:", error);
     res.status(500).json({ error: error.message || "Failed to connect" });
+  }
+});
+
+// Disconnect from MCP Server
+app.post("/api/disconnect", async (req, res) => {
+  try {
+    await disconnectMcpServer();
+    res.json({ success: true, message: "Disconnected successfully" });
+  } catch (error: any) {
+    console.error("Disconnect error:", error);
+    res.status(500).json({ error: error.message || "Failed to disconnect" });
   }
 });
 

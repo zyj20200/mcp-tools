@@ -50,6 +50,22 @@ export async function connectToMcpServer(url: string, headers: Record<string, st
   return { status: "connected" };
 }
 
+export async function disconnectMcpServer() {
+  if (currentClient) {
+    try {
+      await currentClient.close();
+      console.log("Disconnected from MCP Server");
+    } catch (e) {
+      console.error("Error closing client:", e);
+      throw e;
+    } finally {
+      currentClient = null;
+      currentTransport = null;
+    }
+  }
+  return { status: "disconnected" };
+}
+
 export async function listTools() {
   if (!currentClient) {
     throw new Error("Not connected to any MCP Server");
