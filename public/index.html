@@ -313,6 +313,17 @@
     const outputEl = document.getElementById('output');
     const wrapToggle = document.getElementById('wrapToggle');
 
+    // Load saved URL
+    const savedUrl = localStorage.getItem('mcp_server_url');
+    if (savedUrl) {
+        serverUrlInput.value = savedUrl;
+    }
+
+    // Save URL on change
+    serverUrlInput.addEventListener('change', () => {
+        localStorage.setItem('mcp_server_url', serverUrlInput.value);
+    });
+
     wrapToggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             outputEl.classList.add('wrap-text');
@@ -329,6 +340,9 @@
         const url = serverUrlInput.value;
         const auth = authHeaderInput.value;
         const headers = auth ? { "Authorization": auth } : {};
+
+        // Save URL
+        localStorage.setItem('mcp_server_url', url);
 
         connectBtn.disabled = true;
         connectBtn.textContent = "连接中...";
