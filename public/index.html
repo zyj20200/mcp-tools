@@ -362,8 +362,11 @@
         }
     });
 
-    copyBtn.addEventListener('click', () => {
-        const text = outputEl.textContent;
+    copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const out = document.getElementById('output');
+        const text = out ? out.innerText : '';
+        
         if (!text) return;
         
         navigator.clipboard.writeText(text).then(() => {
