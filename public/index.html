@@ -159,6 +159,29 @@
         button.secondary:hover {
             background: #dc2626;
         }
+        
+        .icon-btn {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            height: 28px;
+            font-size: 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: var(--text-primary);
+        }
+        .icon-btn:active {
+            transform: translateY(1px);
+        }
 
         /* Workspace */
         .workspace { display: flex; flex: 1; gap: 24px; overflow: hidden; }
@@ -286,9 +309,15 @@
         <div class="result-panel">
             <h3 class="panel-title">
                 运行结果
-                <label class="toggle-wrap">
-                    <input type="checkbox" id="wrapToggle"> 自动换行
-                </label>
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                    <label class="toggle-wrap" style="margin: 0;">
+                        <input type="checkbox" id="wrapToggle"> 自动换行
+                    </label>
+                    <button id="copyBtn" class="icon-btn" title="复制结果">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        复制
+                    </button>
+                </div>
             </h3>
             <pre id="output">等待运行...</pre>
         </div>
@@ -312,6 +341,7 @@
     const runBtn = document.getElementById('runBtn');
     const outputEl = document.getElementById('output');
     const wrapToggle = document.getElementById('wrapToggle');
+    const copyBtn = document.getElementById('copyBtn');
 
     // Load saved URL
     const savedUrl = localStorage.getItem('mcp_server_url');
@@ -330,6 +360,30 @@
         } else {
             outputEl.classList.remove('wrap-text');
         }
+    });
+
+    copyBtn.addEventListener('click', () => {
+        const text = outputEl.textContent;
+        if (!text) return;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHtml = copyBtn.innerHTML;
+            // Success icon (check)
+            copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
+            copyBtn.style.color = '#059669'; // Emerald 600
+            copyBtn.style.borderColor = '#059669';
+            copyBtn.style.backgroundColor = '#ecfdf5'; // Emerald 50
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+                copyBtn.style.color = '';
+                copyBtn.style.borderColor = '';
+                copyBtn.style.backgroundColor = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert('复制失败: ' + err.message);
+        });
     });
 
     toolSearchInput.addEventListener('input', (e) => {
