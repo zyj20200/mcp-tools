@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import path from "path";
-import { connectToMcpServer, disconnectMcpServer, listTools, callTool } from "./mcpClient.js";
+import { connectToMcpServer, disconnectMcpServer, listTools, callTool, type MCPTransportType, getCurrentTransportType } from "./mcpClient.js";
 
 const app = express();
 const PORT = 3001;
@@ -16,12 +16,29 @@ app.use(express.static(path.join(__dirname, "../public")));
 // Connect to MCP Server
 app.post("/api/connect", async (req, res) => {
   try {
-    const { url, headers } = req.body;
+    const { url, headers, transportType } = req.body;
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
-    await connectToMcpServer(url, headers || {});
-    res.json({ success: true, message: "Connected successfully" });
+
+    const normalizedTransportType = transportType || "auto";
+    if (!["auto", "sse", "streamable-http"].includes(normalizedTransportType)) {
+      return res.status(400).json({
+        error: "transportType must be one of: auto, sse, streamable-http",
+      });
+    }
+
+    const result = await connectToMcpServer(
+      url,
+      headers || {},
+      normalizedTransportType as MCPTransportType
+    );
+
+    res.json({
+      success: true,
+      message: "Connected successfully",
+      transportType: result.transportType,
+    });
   } catch (error: any) {
     console.error("Connection error:", error);
     res.status(500).json({ error: error.message || "Failed to connect" });
@@ -31,8 +48,13 @@ app.post("/api/connect", async (req, res) => {
 // Disconnect from MCP Server
 app.post("/api/disconnect", async (req, res) => {
   try {
+    const previousTransportType = getCurrentTransportType();
     await disconnectMcpServer();
-    res.json({ success: true, message: "Disconnected successfully" });
+    res.json({
+      success: true,
+      message: "Disconnected successfully",
+      transportType: previousTransportType,
+    });
   } catch (error: any) {
     console.error("Disconnect error:", error);
     res.status(500).json({ error: error.message || "Failed to disconnect" });

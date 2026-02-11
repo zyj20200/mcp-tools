@@ -132,10 +132,23 @@
             font-size: 14px;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .form-group input:focus { 
-            outline: none; 
-            border-color: var(--primary-color); 
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         button { 
@@ -288,8 +301,16 @@
 <div id="main">
     <div class="config-panel">
         <div class="form-group" style="flex: 3;">
-            <label>MCP Server SSE URL</label>
-            <input type="text" id="serverUrl" placeholder="http://localhost:8000/sse" value="http://localhost:8000/sse">
+            <label>MCP Server URL</label>
+            <input type="text" id="serverUrl" placeholder="http://localhost:8000/mcp" value="http://localhost:8000/mcp">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>传输协议</label>
+            <select id="transportType">
+                <option value="auto" selected>自动（优先 Streamable HTTP）</option>
+                <option value="streamable-http">Streamable HTTP</option>
+                <option value="sse">SSE</option>
+            </select>
         </div>
         <div class="form-group" style="flex: 1;">
             <label>Auth Header (Optional)</label>
@@ -331,6 +352,7 @@
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
     const serverUrlInput = document.getElementById('serverUrl');
+    const transportTypeSelect = document.getElementById('transportType');
     const authHeaderInput = document.getElementById('authHeader');
     const toolListEl = document.getElementById('toolList');
     const toolSearchInput = document.getElementById('toolSearch');
@@ -343,15 +365,22 @@
     const wrapToggle = document.getElementById('wrapToggle');
     const copyBtn = document.getElementById('copyBtn');
 
-    // Load saved URL
+    // Load saved URL / transport
     const savedUrl = localStorage.getItem('mcp_server_url');
     if (savedUrl) {
         serverUrlInput.value = savedUrl;
     }
+    const savedTransportType = localStorage.getItem('mcp_transport_type');
+    if (savedTransportType && ['auto', 'streamable-http', 'sse'].includes(savedTransportType)) {
+        transportTypeSelect.value = savedTransportType;
+    }
 
-    // Save URL on change
+    // Save URL / transport on change
     serverUrlInput.addEventListener('change', () => {
         localStorage.setItem('mcp_server_url', serverUrlInput.value);
+    });
+    transportTypeSelect.addEventListener('change', () => {
+        localStorage.setItem('mcp_transport_type', transportTypeSelect.value);
     });
 
     wrapToggle.addEventListener('change', (e) => {
@@ -443,11 +472,13 @@
 
     connectBtn.addEventListener('click', async () => {
         const url = serverUrlInput.value;
+        const transportType = transportTypeSelect.value;
         const auth = authHeaderInput.value;
         const headers = auth ? { "Authorization": auth } : {};
 
-        // Save URL
+        // Save URL / transport
         localStorage.setItem('mcp_server_url', url);
+        localStorage.setItem('mcp_transport_type', transportType);
 
         connectBtn.disabled = true;
         connectBtn.textContent = "连接中...";
@@ -457,13 +488,16 @@
             const connectRes = await fetch('/api/connect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, headers })
+                body: JSON.stringify({ url, headers, transportType })
             });
             
             if (!connectRes.ok) {
                 const err = await connectRes.json();
                 throw new Error(err.error || 'Connection failed');
             }
+
+            const connectData = await connectRes.json();
+            const connectedTransportType = connectData.transportType || transportType;
 
             // List Tools
             const toolsRes = await fetch('/api/tools');
@@ -480,7 +514,16 @@
             connectBtn.classList.add('hidden');
             disconnectBtn.classList.remove('hidden');
             serverUrlInput.disabled = true;
+            transportTypeSelect.disabled = true;
             authHeaderInput.disabled = true;
+
+            if (connectedTransportType === 'streamable-http') {
+                disconnectBtn.title = '当前连接：Streamable HTTP';
+            } else if (connectedTransportType === 'sse') {
+                disconnectBtn.title = '当前连接：SSE';
+            } else {
+                disconnectBtn.title = '';
+            }
             
         } catch (err) {
             alert('Error: ' + err.message);
@@ -508,7 +551,9 @@
             connectBtn.classList.remove('hidden');
             disconnectBtn.classList.add('hidden');
             serverUrlInput.disabled = false;
+            transportTypeSelect.disabled = false;
             authHeaderInput.disabled = false;
+            disconnectBtn.title = '';
             
             // Clear selection
             selectedTool = null;

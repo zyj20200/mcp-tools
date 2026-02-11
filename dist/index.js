@@ -17,12 +17,22 @@ app.use(express_1.default.static(path_1.default.join(__dirname, "../public")));
 // Connect to MCP Server
 app.post("/api/connect", async (req, res) => {
     try {
-        const { url, headers } = req.body;
+        const { url, headers, transportType } = req.body;
         if (!url) {
             return res.status(400).json({ error: "URL is required" });
         }
-        await (0, mcpClient_js_1.connectToMcpServer)(url, headers || {});
-        res.json({ success: true, message: "Connected successfully" });
+        const normalizedTransportType = transportType || "auto";
+        if (!["auto", "sse", "streamable-http"].includes(normalizedTransportType)) {
+            return res.status(400).json({
+                error: "transportType must be one of: auto, sse, streamable-http",
+            });
+        }
+        const result = await (0, mcpClient_js_1.connectToMcpServer)(url, headers || {}, normalizedTransportType);
+        res.json({
+            success: true,
+            message: "Connected successfully",
+            transportType: result.transportType,
+        });
     }
     catch (error) {
         console.error("Connection error:", error);
@@ -32,8 +42,13 @@ app.post("/api/connect", async (req, res) => {
 // Disconnect from MCP Server
 app.post("/api/disconnect", async (req, res) => {
     try {
+        const previousTransportType = (0, mcpClient_js_1.getCurrentTransportType)();
         await (0, mcpClient_js_1.disconnectMcpServer)();
-        res.json({ success: true, message: "Disconnected successfully" });
+        res.json({
+            success: true,
+            message: "Disconnected successfully",
+            transportType: previousTransportType,
+        });
     }
     catch (error) {
         console.error("Disconnect error:", error);
